@@ -72,7 +72,7 @@ function create() {
     game.physics.startSystem(Phaser.Physics.ARCADE);
 
     // set the background colour of the scene
-    game.stage.backgroundColor = '#D3D3D3';
+    game.stage.setBackgroundColor('#048C91');
 
     // create a sprite for the player
     player = game.add.sprite(player_margin, initial_height, 'flappybird');
