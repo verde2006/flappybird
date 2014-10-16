@@ -11,6 +11,8 @@ var player_falling = false;
 
 // the height of pipe sprites
 var pipe_size = 50;
+// the height of end bit of pipe
+var pipe_end_size = 12;
 // the horizontal offset at which pipes are spawned
 var pipe_offset = 900;
 // the interval (in seconds) at which new pipe columns are spawned
@@ -21,11 +23,13 @@ var number_of_pipes = 8;
 var gravity = 400;
 
 // the height of the game scene
-var game_height = pipe_size * number_of_pipes;
+var game_height = (pipe_size * number_of_pipes) + (2 * pipe_end_size);
 // the width of the game scene
 var game_width = 790;
 // the horizontal speed in pixels at which pipes move per second
 var game_speed = 200;
+// a boolean indicating whether the game is on start screen
+var game_startscreen = true;
 // a boolean indicating whether the game is running or not
 var game_playing = false;
 
@@ -41,9 +45,12 @@ var big_style = { font: "30px Arial", fill: "#ffffff" };
 var small_style = { font: "20px Arial", fill: "#ffffff" };
 
 // variables which represent labels used to display text on the screen
+var label_welcome;
 var label_score;
-var label_instructions;
 var label_gameover;
+var label_endscore;
+var label_instructions;
+var label_reset;
 
 // the player sprite
 var player;
@@ -59,9 +66,11 @@ var game = new Phaser.Game(game_width, game_height, Phaser.AUTO, 'game', actions
  */
 function preload() {
     // load the images located in the 'assets/' folder and assign names to them (e.g. 'pipe')
+    game.load.image('background', 'assets/bg1.jpg');
     // game.load.image('jamesbond', 'assets/jamesBond.gif');
     game.load.image('flappybird', 'assets/flappy-cropped.png');
-    game.load.image('pipe', 'assets/pipe.png');
+    game.load.image('pipe-body', 'assets/pipe2-body.png');
+    game.load.image('pipe-end', 'assets/pipe2-end.png');
 }
 
 /*
@@ -71,12 +80,16 @@ function create() {
     // there are three physics engine. this is the basic one
     game.physics.startSystem(Phaser.Physics.ARCADE);
 
-    // set the background colour of the scene
-    game.stage.setBackgroundColor('#048C91');
+    // set the background colour of the scene (Cambridge blue)
+    game.stage.backgroundColor = '#98baac';
+    game.add.image(0, 0, 'background');
 
-    // create a sprite for the player
-    player = game.add.sprite(player_margin, initial_height, 'flappybird');
+    // create a sprite for the player and center on start screen
+    player = game.add.sprite(game_width/2, game_height/2, 'flappybird');
     // player = game.add.sprite(player_margin, initial_height, 'jamesbond');
+
+    // rotate the player slightly for uplifting visual effect
+    game.add.tween(player).to({angle: -375}, 2000).start();
 
     // set the anchor to the middle of the sprite
     player.anchor.setTo(0.5, 0.5);
@@ -88,36 +101,77 @@ function create() {
     // and trigger the 'onOutOfBounds' event if not
     player.checkWorldBounds = true;
 
-    // initialise the labels for the score, instructions, and game over message
-    label_score = game.add.text(20, 20, score, big_style);
-    label_score.visible = false;
-
-    label_instructions = game.add.text(game.width/2, game.height/2 + 30, "Press [Space] to jump!", small_style);
-    label_instructions.anchor.set(0.5);
-
-    label_gameover = game.add.text(game.width/2,game.height/2, "Game over!", big_style);
-    label_gameover.anchor.set(0.5);
-    label_gameover.visible = false;
-
-    // assign the 'on_space' function as an event handler to the space key
-    var space_key = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
-    space_key.onDown.add(on_space);
-
     // create a new group for the pipe sprites - this will allow us to easily manipulate all
     // pipes at once later on
     pipes = game.add.group();
+
+    // initialise the labels for the score, instructions, and game over message
+    label_welcome = game.add.text(game_width/2,game.height/4, "Welcome to CCA Flappy Bird!", big_style);
+    label_welcome.anchor.set(0.5);
+
+    label_score = game.add.text(20, 20, "", big_style);
+    label_score.visible = false;
+
+    label_gameover = game.add.text(game.width/2,game.height/3, "Game over!", big_style);
+    label_gameover.anchor.set(0.5);
+    label_gameover.visible = false;
+
+    label_endscore = game.add.text(game.width/2,game.height/2, "", big_style);
+    label_endscore.anchor.set(0.5);
+    label_endscore.visible = false;
+
+    label_instructions = game.add.text(game.width/2, game.height*2/3, "Tap or press [Space] to start", small_style);
+    label_instructions.anchor.set(0.5);
+
+    label_reset = game.add.text(game.width/2, game.height*2/3, "Tap or press [Space] for start screen", small_style);
+    label_reset.anchor.set(0.5);
+    label_reset.visible = false;
+
+    // assign the 'game_play' function as an event handler to the space key
+    var space_key = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+    space_key.onDown.add(game_play);
+    // also allow mouse click and touch input for game play
+    game.input.onDown.add(game_play);
+}
+
+/*
+ * This function is called every time the game is reset.
+ */
+function game_reset() {
+    // toggle the visibility of the labels
+    label_welcome.visible = true;
+    label_score.visible = false;
+    label_gameover.visible = false;
+    label_endscore.visible = false;
+    label_instructions.visible = true;
+    label_reset.visible = false;
+
+    // pause player
+    player.body.gravity.y = 0;
+
+    // reset player to initial position on start screen
+    player.reset(game_width/2, game_height/2);
+
+    // rotate the player slightly for uplifting visual effect
+    game.add.tween(player).to({angle: -375}, 2000).start();
+
+    // change the state of the game
+    game_startscreen = true;
 }
 
 /*
  * This function is called every time the game is started.
  */
-function reset() {
+function game_start() {
     // toggle the visibility of the labels
-    label_instructions.visible = false;
-    label_gameover.visible = false;
+    label_welcome.visible = false;
     label_score.visible = true;
+    label_gameover.visible = false;
+    label_endscore.visible = false;
+    label_instructions.visible = false;
+    label_reset.visible = false;
 
-    // reset the score
+    // reset the score counter
     score = 0;
     label_score.setText(score);
 
@@ -140,6 +194,7 @@ function reset() {
     player.events.onOutOfBounds.add(game_over);
 
     // change the state of the game
+    game_startscreen = false;
     game_playing = true;
 }
 
@@ -177,6 +232,7 @@ function update_score() {
     }
 
     label_score.setText(score);
+    label_endscore.setText("Your score: "+score);
 }
 
 /*
@@ -184,21 +240,22 @@ function update_score() {
  * game is running, then it will cause the player sprite to jump. If the game has not been started
  * or the game over screen is visible, then this will cause the game to be started.
  */
-function on_space() {
+function game_play() {
     if(game_playing) {
-        jump();
-    }
-    else if(!player_falling) {
-        reset();
+        player_jump();
+    } else if(game_startscreen) {
+        game_start();
+    } else if(!player_falling) {
+        game_reset();
     }
 }
 
 /*
  * Sets the player sprite's vertical velocity to a negative value, which causes it to go up.
  */
-function jump() {
+function player_jump() {
     // the smaller the number the higher it jumps
-    player.body.velocity.y = jump_height * -1;
+    player.body.velocity.y = -1 * jump_height;
     // a bit of banter to rotate the player slightly as it jumps
     game.add.tween(player).to({angle: -15}, 100).start();
 }
@@ -206,16 +263,17 @@ function jump() {
 /*
  * Adds a single pipe sprite to the game at the specified coordinates.
  */
-function add_one_pipe(x, y) {
-    // create the pipe in the 'pipes' group
-    var pipe = pipes.create(x, y, 'pipe');
+function add_pipe_part(x, y, pipe_part) {
+    // create new pipe part in the 'pipes' group
+    var pipe = pipes.create(x, y, pipe_part);
 
-    // enable physics for the pipe
+    // enable physics for the individual pipe part
     game.physics.arcade.enable(pipe);
 
     // set the pipe's horizontal velocity to a negative value, which causes it to go left.
-    pipe.body.velocity.x = game_speed * -1;
+    pipe.body.velocity.x = -1 * game_speed;
 }
+
 
 /*
  * This function serves as an event handler for the pipe generator. It is called score_update_interval
@@ -223,14 +281,19 @@ function add_one_pipe(x, y) {
  */
 function generate_pipes() {
     // calculate a random position for the hole within the pipe
-    var hole = Math.floor(Math.random()*5)+1;
+    var hole = Math.floor(Math.random()*(number_of_pipes-3))+1;
 
     // generate the pipes, except where the hole should be
-    for (var i = 0; i < hole; i++) {
-        add_one_pipe(pipe_offset, i * pipe_size);
+    var i;
+
+    for (i = 0; i < hole; i++) {
+        add_pipe_part(pipe_offset, i * pipe_size, 'pipe-body');
     }
-    for(var i = hole + 2; i < number_of_pipes; i++){
-        add_one_pipe(pipe_offset, i * pipe_size);
+    add_pipe_part(pipe_offset-2, hole * pipe_size, 'pipe-end');
+
+    add_pipe_part(pipe_offset-2, (hole+2) * pipe_size + pipe_end_size, 'pipe-end');
+    for(i = hole + 2; i < number_of_pipes; i++){
+        add_pipe_part(pipe_offset, i * pipe_size + (2*pipe_end_size), 'pipe-body');
     }
 }
 
@@ -243,7 +306,7 @@ function player_fallen() {
     player_falling = false;
     player.events.onOutOfBounds.removeAll();
 
-    label_instructions.visible = true;
+    label_reset.visible = true;
 }
 
 /*
@@ -266,20 +329,20 @@ function game_over() {
     // remove the event handler which checks if the player sprite has left the bounds of the scene
     player.events.onOutOfBounds.removeAll();
 
+    // toggle the visibility of the game over/score labels
+    label_score.visible = false;
+    label_gameover.visible = true;
+    label_endscore.visible = true;
+
     // if the player sprite is still within the bounds of the scene, we want to wait for it to fall out
     // before allowing the game to be restarted (this is purely for aesthetics)
     // otherwise, we don't wait
     if(game.world.bounds.contains(player.x, player.y)) {
-        // change the game state to 'waiting for the player to fall out of the scene' and set up an
-        // event handler which waits for this to occur
+        // change the game state to 'waiting for the player to fall out of the scene' and
+        // set up an event handler which waits for this to occur
         player_falling = true;
         player.events.onOutOfBounds.add(player_fallen);
+    } else {
+        label_reset.visible = true;
     }
-    else {
-        label_instructions.visible = true;
-    }
-
-    // toggle the visibility of the game over/score labels
-    label_gameover.visible = true;
-    label_score.visible = false;
 }
