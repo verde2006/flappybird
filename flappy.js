@@ -35,10 +35,13 @@ var game_playing = false;
 
 // stores the current score
 var score = 0;
-// the interval (fraction of a second) at which the score is updated
-var score_update_interval = 10;
-// stores the distance that has been travelled by pipes
-var distance_travelled = 0;
+// the frequency of score updates per second
+var score_update_freq = 0.1;
+// keep track of game play time
+var game_time = 0;
+// times it takes to approach first pipe
+var time_offset = (pipe_offset - player_margin)/game_speed;
+
 
 // font styles for the text
 var big_style = { font: "30px Arial", fill: "#ffffff" };
@@ -71,6 +74,8 @@ function preload() {
     game.load.image('flappybird', 'assets/flappy-cropped.png');
     game.load.image('pipe-body', 'assets/pipe2-body.png');
     game.load.image('pipe-end', 'assets/pipe2-end.png');
+    // load audio and sound effects
+    game.load.audio('score', 'assets/point.ogg');
 }
 
 /*
@@ -83,6 +88,9 @@ function create() {
     // set the background colour of the scene (Cambridge blue)
     game.stage.backgroundColor = '#98baac';
     game.add.image(0, 0, 'background');
+
+    // load game audio
+    game.add.audio('score');
 
     // create a sprite for the player and center on start screen
     player = game.add.sprite(game_width/2, game_height/2, 'flappybird');
@@ -175,9 +183,8 @@ function game_start() {
     score = 0;
     label_score.setText(score);
 
-    // reset the distance travelled to a negative value to account for
-    // the longer distance to the first pipe
-    distance_travelled = 0 - pipe_offset;
+    // reset play time
+    game_time = 0;
 
     // reset the player to its initial position - also resets the physics
     player.reset(player_margin, initial_height);
@@ -186,8 +193,8 @@ function game_start() {
     player.body.gravity.y = gravity;
 
     // set up timers for the pipe generation and score updates
-    game.time.events.loop(Phaser.Timer.SECOND * pipe_interval, generate_pipes);
-    game.time.events.loop(Phaser.Timer.SECOND / score_update_interval, update_score);
+    game.time.events.loop(pipe_interval * Phaser.Timer.SECOND, generate_pipes);
+    game.time.events.loop(score_update_freq * Phaser.Timer.SECOND, update_score);
 
     // set up 'game_over' as an event handler for when the player sprite leaves the bounds of the screen
     player.events.onOutOfBounds.removeAll();
@@ -218,17 +225,22 @@ function update() {
 
 /*
  * Calculates the score and updates the score label. This function is called
- * score_update_interval-many times per second.
+ * with a frequency of score_update_freq.
  */
 function update_score() {
-    // game_speed is the velocity at which the pipes move to the left (in pixels) of the screen (per second)
-    distance_travelled += game_speed / score_update_interval;
+    // update game play time [seconds]
+    game_time += score_update_freq;
 
-    if(distance_travelled >= 0) {
-        // pipe_interval is the interval in seconds at which pipes spawn
-        var pipe_distance = pipe_interval * game_speed;
-
-        score = Math.floor(distance_travelled / pipe_distance);
+    if(game_time > time_offset) {
+        // scoring based on game run time over pipe spawn time
+        var score_new = Math.floor((game_time-time_offset)/pipe_interval);
+        // check if player passed through a pipe
+        if(score_new-score == 1) {
+            // play sound effect
+            game.sound.play('score');
+            // increase score display
+            score++;
+        }
     }
 
     label_score.setText(score);
@@ -242,6 +254,8 @@ function update_score() {
  */
 function game_play() {
     if(game_playing) {
+        // play sound effect
+        //game.sound.play('score');
         player_jump();
     } else if(game_startscreen) {
         game_start();
@@ -276,8 +290,8 @@ function add_pipe_part(x, y, pipe_part) {
 
 
 /*
- * This function serves as an event handler for the pipe generator. It is called score_update_interval
- * times per second.
+ * This function serves as an event handler for the pipe generator.
+ * It is called with frequency per second of score_update_freq.
  */
 function generate_pipes() {
     // calculate a random position for the hole within the pipe
