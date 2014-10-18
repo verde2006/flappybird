@@ -309,6 +309,11 @@ function generate_pipes() {
     for(i = hole + 2; i < number_of_pipes; i++){
         add_pipe_part(pipe_offset, i * pipe_size + (2*pipe_end_size), 'pipe-body');
     }
+
+    // workshop hack
+    //score++;
+    //label_score.setText(score);
+    //label_endscore.setText("Your score: "+score);
 }
 
 /*
@@ -328,6 +333,10 @@ function player_fallen() {
  * the bounds of the scene.
  */
 function game_over() {
+    // workshop hack
+    //location.reload();
+    //return;
+
     // check that the game hasn't been stopped already
     if(!game_playing)
         return;
@@ -359,4 +368,5 @@ function game_over() {
     } else {
         label_reset.visible = true;
     }
+
 }
