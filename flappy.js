@@ -37,10 +37,10 @@ var game_playing = false;
 var score = 0;
 // the frequency of score updates per second
 var score_update_freq = 0.1;
-// keep track of game play time
-var game_time = 0;
 // times it takes to approach first pipe
 var time_offset = (pipe_offset - player_margin)/game_speed;
+// keep track of game play time
+var pipe_timer = -time_offset;
 
 
 // font styles for the text
@@ -184,7 +184,7 @@ function game_start() {
     label_score.setText(score);
 
     // reset play time
-    game_time = 0;
+    pipe_timer = -time_offset;
 
     // reset the player to its initial position - also resets the physics
     player.reset(player_margin, initial_height);
@@ -229,11 +229,11 @@ function update() {
  */
 function update_score() {
     // update game play time [seconds]
-    game_time += score_update_freq;
+    pipe_timer += score_update_freq;
 
-    if(game_time > time_offset) {
+    if(pipe_timer > 0) {
         // scoring based on game run time over pipe spawn time
-        var score_new = Math.floor((game_time-time_offset)/pipe_interval);
+        var score_new = Math.floor(pipe_timer/pipe_interval);
         // check if player passed through a pipe
         if(score_new-score == 1) {
             // play sound effect
