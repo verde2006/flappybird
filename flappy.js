@@ -37,7 +37,7 @@ var game_playing = false;
 var score = 0;
 // the frequency of score updates per second
 var score_update_freq = 0.1;
-// time it takes to pass through first pipe
+// time it takes to pass through the first pipe
 var time_offset = (pipe_size + pipe_offset - player_margin)/game_speed;
 // keep track of game play time for scoring
 var pipe_timer = -time_offset;
