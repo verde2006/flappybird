@@ -70,7 +70,6 @@ var game = new Phaser.Game(game_width, game_height, Phaser.AUTO, 'game', actions
 function preload() {
     // load the images located in the 'assets/' folder and assign names to them (e.g. 'pipe')
     game.load.image('background', 'assets/bg1.jpg');
-    // game.load.image('jamesbond', 'assets/jamesBond.gif');
     game.load.image('flappybird', 'assets/flappy-cropped.png');
     game.load.image('pipe-body', 'assets/pipe2-body.png');
     game.load.image('pipe-end', 'assets/pipe2-end.png');
@@ -85,7 +84,7 @@ function create() {
     // there are three physics engine. this is the basic one
     game.physics.startSystem(Phaser.Physics.ARCADE);
 
-    // set the background colour of the scene (Cambridge blue)
+    // set the background colour of the scene (Cambridge blue #98baac)
     game.stage.backgroundColor = '#98baac';
     game.add.image(0, 0, 'background');
 
@@ -254,8 +253,6 @@ function update_score() {
  */
 function game_play() {
     if(game_playing) {
-        // play sound effect
-        //game.sound.play('score');
         player_jump();
     } else if(game_startscreen) {
         game_start();
@@ -333,9 +330,10 @@ function player_fallen() {
  * the bounds of the scene.
  */
 function game_over() {
-    // workshop hack
+    // workshop hack 1
     //location.reload();
-    //return;
+    // workshop hack 2
+    //game.paused = true;
 
     // check that the game hasn't been stopped already
     if(!game_playing)
